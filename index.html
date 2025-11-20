@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: sans-serif; text-align:center;">
+
+    <h3>Tirar Foto</h3>
+
+    <video id="video" autoplay playsinline style="width:90%; border-radius: 10px;"></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <br><br>
+    <button onclick="takePhoto()" 
+        style="padding:12px 20px; font-size:18px; border-radius:8px;">
+        Capturar Foto
+    </button>
+
+    <script>
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+
+        // Ativa câmera no celular
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+            .then(stream => video.srcObject = stream)
+            .catch(err => {
+                sendToAppInventor("ERRO_CAMERA:" + err);
+            });
+
+        // Envia mensagem para App Inventor
+        function sendToAppInventor(msg) {
+            if (window.AppInventor) {
+                window.AppInventor.setWebViewString(msg);
+            }
+        }
+
+        // Tira a foto e envia ao Vercel
+        async function takePhoto() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(async (blob) => {
+                sendToAppInventor("ENVIANDO");
+
+                try {
+                    const response = await fetch("https://upload-api-vercel.vercel.app/api/upload", {
+                        method: "POST",
+                        body: blob,
+                        headers: { "Content-Type": "image/jpeg" }
+                    });
+
+                    const data = await response.json();
+
+                    if (data.url) {
+                        sendToAppInventor("URL:" + data.url);
+                    } else {
+                        sendToAppInventor("ERRO_API");
+                    }
+
+                } catch (e) {
+                    sendToAppInventor("ERRO_FETCH:" + e);
+                }
+
+            }, "image/jpeg");
+        }
+    </script>
+
+</body>
+</html>
