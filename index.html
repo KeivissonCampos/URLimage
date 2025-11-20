@@ -3,11 +3,14 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Camera AppInventor</title>
+    <title>Camera AI2</title>
     <style>
-        video,
-        canvas {
+        video {
             width: 100%;
+        }
+
+        canvas {
+            display: none;
         }
     </style>
 </head>
@@ -15,25 +18,37 @@
 <body>
 
     <video id="video" autoplay playsinline></video>
-    <canvas id="canvas" style="display:none;"></canvas>
+    <canvas id="canvas"></canvas>
 
     <script>
+
+        document.addEventListener("DOMContentLoaded", () => {
+            // App Inventor envia sinal via WebViewString
+            document.addEventListener("message", (e) => {
+                if (e.data === "openCamera") startCamera();
+            });
+        });
+
+        // Para App Inventor (compatibilidade extra)
+        window.addEventListener("message", (e) => {
+            if (e.data === "openCamera") startCamera();
+        });
+
         async function startCamera() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "environment" } // câmera traseira
+                    video: { facingMode: "environment" }
                 });
 
                 const video = document.getElementById("video");
                 video.srcObject = stream;
 
                 video.onloadedmetadata = () => {
-                    // Espera 1 segundo e tira foto automaticamente
-                    setTimeout(takePhoto, 1000);
+                    setTimeout(takePhoto, 800); // tira foto automatico
                 };
 
             } catch (err) {
-                alert("Erro ao acessar câmera: " + err);
+                window.AppInventor.setWebViewString("ERRO:" + err);
             }
         }
 
@@ -46,15 +61,10 @@
             canvas.height = video.videoHeight;
 
             ctx.drawImage(video, 0, 0);
+            const img = canvas.toDataURL("image/jpeg");
 
-            // Converte imagem para Base64
-            const data = canvas.toDataURL("image/jpeg");
-
-            // Envia para App Inventor
-            window.AppInventor.setWebViewString(data);
+            window.AppInventor.setWebViewString(img);
         }
-
-        startCamera();
     </script>
 
 </body>
